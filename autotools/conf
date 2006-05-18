@@ -1,0 +1,7 @@
+#!/bin/sh
+atdir="`dirname $0`"
+{ test -f "$atdir/../configure" || "$atdir/gen"; } &&
+cd "$atdir/.." &&
+exec ./configure CFLAGS='-O2 -fomit-frame-pointer -pipe' \
+		 CXXFLAGS='-O2 -fomit-frame-pointer -pipe' \
+		 LDFLAGS=-s "$@"
