@@ -39,6 +39,7 @@ namespace Podz
 {
 
 class Object;
+class PostProcess;
 class Textures;
 
 static const float VIEW_ANGLE = 60.f, VIEW_NEAR = .1f, VIEW_FAR = 1000.f;
@@ -50,29 +51,36 @@ public:
     ~Display();
 
     void AddObject(Object *object);
+    void AddPostProcess(PostProcess *postproc);
+
     void SetFullScreen(const bool fullScreen, const bool first = false);
-    static void RebuildLists();
+    void RebuildLists();
 
     static void DisplayText(const char *const text, const float x,
 			    const float y, const float scale = 0.0005f);
 
-    static void EnableLighting(bool enabled = true) { lighting = enabled; }
-    static void DisableLighting() { EnableLighting(false); }
-    static bool IsLightingEnabled() { return lighting; }
+    void EnableLighting(bool enabled = true) { lighting = enabled; }
+    void DisableLighting() { EnableLighting(false); }
+    bool IsLightingEnabled() const { return lighting; }
+    void ToogleLighting() { lighting = !lighting; }
+
+    int GetWidth() const { return realWidth; }
+    int GetHeight() const { return realHeight; }
 
 private:
     int window;
-    int width, height;
+    int width, height, realWidth, realHeight;
     bool fullScreen;
+    bool lighting;
 
     std::list<Object *> objects;
-
-    static Display *instance;
-    static bool lighting;
+    std::list<PostProcess *> postprocs;
 
     void OnDisplay();
     void OnReshape(const int width, const int height);
 
+    // GLUT callbacks
+    static Display *instance;
     static void DisplayFunc();
     static void ReshapeFunc(int width, int height);
 };

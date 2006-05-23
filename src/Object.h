@@ -53,6 +53,7 @@ public:
     virtual void SetupLightsVar();
     virtual void DisplayConst();
     virtual void DisplayVar();
+    virtual void DisplayOSD();
 
 protected:
     Object();
@@ -65,8 +66,7 @@ protected:
 			 const Texture *texture, const float coord[8]);
 
 private:
-    int lists[LIST_NUM];
-    static int lastList;
+    int lists;
 };
 
 } // namespace Podz

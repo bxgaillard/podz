@@ -32,7 +32,11 @@
 #ifndef PODZ_BASIS_H
 #define PODZ_BASIS_H
 
+#define PODZ_USE_GL
+#include "OpenGL.h"
+
 #include "Vector.h"
+
 
 namespace Podz {
 
@@ -42,6 +46,7 @@ public:
     Vector origin, right, up, backward;
 
     Basis();
+    Basis(const Vector &vorigin, const Vector &direction, const Vector &vup);
     Basis(const Vector &vorigin, const Vector &vright,
 	  const Vector &vup, const Vector &vbackward);
 
@@ -64,17 +69,18 @@ public:
 	backward.Rotate(rx, ry, rz);
     }
 
+    void Move() const;
     void SetView() const;
 
 private:
-    float transform[3][3];
-    float invert[3][3];
+    GLfloat transform[4][4];
+    GLfloat invert[4][4];
 
     void Setup();
 
-    static Vector Mult(const float matrix[3][3], const Vector &v);
+    static Vector Mult(const GLfloat matrix[4][4], const Vector &v);
     public:
-    static bool RevertMatrix(const float m[3][3], float result[3][3]);
+    static bool RevertMatrix(const GLfloat m[4][4], GLfloat result[4][4]);
 };
 
 } // namespace Podz

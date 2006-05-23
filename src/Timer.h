@@ -46,7 +46,7 @@ class Timer : public Object
 public:
     Timer(int intervl, Keyboard &kbd);
 
-    virtual void DisplayVar();
+    virtual void DisplayOSD();
 
     void RegisterCallbacks();
 

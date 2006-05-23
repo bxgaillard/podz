@@ -34,18 +34,9 @@
 # include <config.h>
 #endif // HAVE_CONFIG_H
 
-// Windows
-#ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-#endif // _WIN32
-
 // OpenGL
-#ifdef __APPLE__
-# include <OpenGL/gl.h>
-#else // !__APPLE__
-# include <GL/gl.h>
-#endif // !__APPLE__
+#define PODZ_USE_GL
+#include "OpenGL.h"
 
 // This module
 #include "Vector.h"
@@ -55,38 +46,35 @@
 
 namespace Podz {
 
-int Object::lastList = 0;
-
-
 Object::Object()
-{
-    for (int i = 0; i < LIST_NUM; ++i)
-	lists[i] = ++lastList;
-}
+    : lists(glGenLists(LIST_NUM))
+{}
 
 Object::~Object()
-{}
+{
+    glDeleteLists(lists, LIST_NUM);
+}
 
 void Object::BuildLists()
 {
-    glNewList(lists[LIST_LIGHTS], GL_COMPILE);
+    glNewList(lists + LIST_LIGHTS, GL_COMPILE);
     SetupLightsConst();
     glEndList();
 
-    glNewList(lists[LIST_DISPLAY], GL_COMPILE);
+    glNewList(lists + LIST_DISPLAY, GL_COMPILE);
     DisplayConst();
     glEndList();
 }
 
 void Object::SetupLights()
 {
-    glCallList(lists[LIST_LIGHTS]);
+    glCallList(lists + LIST_LIGHTS);
     SetupLightsVar();
 }
 
 void Object::Display()
 {
-    glCallList(lists[LIST_DISPLAY]);
+    glCallList(lists + LIST_DISPLAY);
     DisplayVar();
 }
 
@@ -95,6 +83,7 @@ void Object::SetupLightsConst() {}
 void Object::SetupLightsVar() {}
 void Object::DisplayConst() {}
 void Object::DisplayVar() {}
+void Object::DisplayOSD() {}
 
 void Object::DrawTriangle(const Vector &point1, const Vector &point2,
 			  const Vector &point3, const Texture *texture,

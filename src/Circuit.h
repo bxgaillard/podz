@@ -58,6 +58,7 @@ public:
 
     Basis GetBasis(float position) const;
     float GetWidth(float position) const;
+    static float GetBorderSlope();
 
 private:
     struct Point {

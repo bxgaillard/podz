@@ -7,7 +7,7 @@
  * ---------------------------------------------------------------------------
  *
  *        File: src/Vehicle.h
- * Description: Vahicle Handling Functions (Header)
+ * Description: Vehicle Handling Functions (Header)
  *
  * ---------------------------------------------------------------------------
  *
@@ -50,8 +50,8 @@ public:
 
     virtual void SetupModelview();
     virtual void SetupLightsConst();
-    virtual void DisplayConst();
     virtual void DisplayVar();
+    virtual void DisplayOSD();
 
     void Init();
     void Move();
@@ -76,7 +76,9 @@ private:
     float circOffset;
     float acceleration;
     float angle;
+    float slope;
 
+    bool accelerated;
     bool wrongWay;
     int lap;
 

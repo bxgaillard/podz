@@ -31,7 +31,7 @@ dnl Process this file with autoconf to produce a configure script.
 
 dnl Autotools initialization
 AC_PREREQ(2.52g)
-AC_INIT([Podz], [1.0.0], [b.gaillard@powercode.net], [podz])
+AC_INIT([Podz], [1.1.0], [b.gaillard@powercode.net], [podz])
 AC_CONFIG_SRCDIR([src/Application.cpp])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_AUX_DIR([autotools])

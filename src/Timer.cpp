@@ -36,24 +36,15 @@
 
 // Windows
 #ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-# include <cstdlib>
 # define snprintf _snprintf
-# ifdef _MSC_VER
-#  pragma warning(disable: 4505)
-# endif // _MSC_VER
 #endif // _WIN32
 
 // System
 #include <cstdio>
 
 // OpenGL
-#ifdef __APPLE__
-# include <GLUT/glut.h>
-#else // !__APPLE__
-# include <GL/glut.h>
-#endif // !__APPLE__
+#define PODZ_USE_GLUT
+#include "OpenGL.h"
 
 // This module
 #include "Keyboard.h"
@@ -110,7 +101,7 @@ void Timer::OnTimer(int value)
     glutPostRedisplay();
 }
 
-void Timer::DisplayVar()
+void Timer::DisplayOSD()
 {
     char buffer[32];
     snprintf(buffer, sizeof(buffer), "Time: %d s", time / 1000);

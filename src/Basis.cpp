@@ -34,18 +34,9 @@
 # include <config.h>
 #endif // HAVE_CONFIG_H
 
-// Windows
-#ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-#endif // _WIN32
-
 // OpenGL
-#ifdef __APPLE__
-# include <OpenGL/gl.h>
-#else // !__APPLE__
-# include <GL/gl.h>
-#endif // !__APPLE__
+#define PODZ_USE_GL
+#include "OpenGL.h"
 
 // This module
 #include "Vector.h"
@@ -60,11 +51,22 @@ Basis::Basis()
     Setup();
 }
 
+Basis::Basis(const Vector &vorigin, const Vector &direction,
+	     const Vector &vup)
+    : origin(vorigin), up(vup), backward(-direction)
+{
+    up.Normalize();
+    backward.Normalize();
+    right = (direction * up) % 1;
+    up = backward * right;
+
+    Setup();
+}
+
 Basis::Basis(const Vector &vorigin, const Vector &vright,
 	     const Vector &vup, const Vector &vbackward)
     : origin(vorigin), right(vright), up(vup), backward(vbackward)
 {
-
     right.Normalize();
     up.Normalize();
     backward.Normalize();
@@ -77,12 +79,19 @@ void Basis::Setup()
     transform[0][0] = right.x;
     transform[0][1] = up.x;
     transform[0][2] = backward.x;
+    transform[0][3] = 0.f;
     transform[1][0] = right.y;
     transform[1][1] = up.y;
     transform[1][2] = backward.y;
+    transform[1][3] = 0.f;
     transform[2][0] = right.z;
     transform[2][1] = up.z;
     transform[2][2] = backward.z;
+    transform[2][3] = 0.f;
+    transform[3][0] = 0.f;
+    transform[3][1] = 0.f;
+    transform[3][2] = 0.f;
+    transform[3][3] = 1.f;
 
     RevertMatrix(transform, invert);
 }
@@ -97,21 +106,19 @@ Basis Basis::Merge(const Basis &other, const float coef) const
 		 backward * (1.f - coef) + other.backward * coef);
 }
 
+void Basis::Move() const
+{
+    glTranslatef(origin.x, origin.y, origin.z);
+    glMultMatrixf(invert[0]);
+}
+
 void Basis::SetView() const
 {
-    const GLfloat matrix[4 * 4] = {
-	right.x, up.x, backward.x, 0.f,
-	right.y, up.y, backward.y, 0.f,
-	right.z, up.z, backward.z, 0.f,
-	0.f,     0.f,  0.f,        1.f
-    };
-
-    glMultMatrixf(matrix);
+    glMultMatrixf(transform[0]);
     glTranslatef(-origin.x, -origin.y, -origin.z);
 }
 
-
-Vector Basis::Mult(const float matrix[3][3], const Vector &v)
+Vector Basis::Mult(const GLfloat matrix[4][4], const Vector &v)
 {
     return Vector(
 	matrix[0][0] * v.x + matrix[0][1] * v.y + matrix[0][2] * v.z,
@@ -119,11 +126,11 @@ Vector Basis::Mult(const float matrix[3][3], const Vector &v)
 	matrix[2][0] * v.x + matrix[2][1] * v.y + matrix[2][2] * v.z);
 }
 
-bool Basis::RevertMatrix(const float m[3][3], float result[3][3])
+bool Basis::RevertMatrix(const GLfloat m[4][4], GLfloat result[4][4])
 {
-    float det = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
-	      - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
-	      + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+    GLfloat det = m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1])
+		- m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0])
+		+ m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
     if (det == 0.f)
 	return false;
     det = 1.f / det;
@@ -131,12 +138,19 @@ bool Basis::RevertMatrix(const float m[3][3], float result[3][3])
     result[0][0] = det * (m[1][1] * m[2][2] - m[1][2] * m[2][1]);
     result[0][1] = det * (m[0][2] * m[2][1] - m[0][1] * m[2][2]);
     result[0][2] = det * (m[0][1] * m[1][2] - m[0][2] * m[1][1]);
+    result[0][3] = 0.f;
     result[1][0] = det * (m[1][2] * m[2][0] - m[1][0] * m[2][2]);
     result[1][1] = det * (m[0][0] * m[2][2] - m[0][2] * m[2][0]);
     result[1][2] = det * (m[0][2] * m[1][0] - m[0][0] * m[1][2]);
+    result[1][3] = 0.f;
     result[2][0] = det * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
     result[2][1] = det * (m[0][1] * m[2][0] - m[0][0] * m[2][1]);
     result[2][2] = det * (m[0][0] * m[1][1] - m[0][1] * m[1][0]);
+    result[2][3] = 0.f;
+    result[3][0] = 0.f;
+    result[3][1] = 0.f;
+    result[3][2] = 0.f;
+    result[3][3] = 1.f;
 
     return true;
 }

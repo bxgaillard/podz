@@ -34,22 +34,9 @@
 # include <config.h>
 #endif // HAVE_CONFIG_H
 
-// Windows
-#ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-# include <cstdlib>
-# ifdef _MSC_VER
-#  pragma warning(disable: 4505)
-# endif // _MSC_VER
-#endif // _WIN32
-
 // OpenGL
-#ifdef __APPLE__
-# include <GLUT/glut.h>
-#else // !__APPLE__
-# include <GL/glut.h>
-#endif // !__APPLE__
+#define PODZ_USE_GLUT
+#include "OpenGL.h"
 
 // This module
 #include "Vehicle.h"
@@ -65,13 +52,13 @@ namespace Podz
 
 Keyboard *Keyboard::instance = 0;
 
-Keyboard::Keyboard(Vehicle &vehi)
-    : vehicle(vehi), timer(0)
+Keyboard::Keyboard(Display &disp, Vehicle &vehi)
+    : display(disp), vehicle(vehi), timer(0)
 {
     if (glutDeviceGet(GLUT_HAS_KEYBOARD) != 1)
 	return;
 
-    for (int i = 0; i < KEY_NUM; i++)
+    for (int i = 0; i < KEY_NUM; ++i)
 	pressed[i] = false;
 
     instance = this;
@@ -117,7 +104,6 @@ void Keyboard::UpdateKey(int key, bool state)
 
     case GLUT_KEY_RIGHT:
 	pressed[KEY_RIGHT] = state;
-	break;
     }
 }
 
@@ -148,14 +134,14 @@ void Keyboard::KeyPressed(unsigned char key, int, int)
 
     case 'L':
     case 'l':
-	Display::EnableLighting(!Display::IsLightingEnabled());
+	display.ToogleLighting();
 	glutPostRedisplay();
 	break;
 
     case 'T':
     case 't':
-	Texture::EnableTexturing(!Texture::IsTexturingEnabled());
-	Display::RebuildLists();
+	Texture::ToogleTexturing();
+	display.RebuildLists();
 	glutPostRedisplay();
 	break;
 
@@ -167,13 +153,12 @@ void Keyboard::KeyPressed(unsigned char key, int, int)
 
 void Keyboard::SpecialKeyPressed(int key, int, int)
 {
-    UpdateKey(key, true);
-
     switch (key) {
     case GLUT_KEY_UP:
     case GLUT_KEY_DOWN:
     case GLUT_KEY_LEFT:
     case GLUT_KEY_RIGHT:
+	UpdateKey(key, true);
 	if (!timer->IsPaused())
 	    timer->Start();
     }

@@ -34,18 +34,9 @@
 # include <config.h>
 #endif // HAVE_CONFIG_H
 
-// Windows
-#ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-#endif // _WIN32
-
 // OpenGL
-#ifdef __APPLE__
-# include <OpenGL/gl.h>
-#else // !__APPLE__
-# include <GL/gl.h>
-#endif // !__APPLE__
+#define PODZ_USE_GL
+#include "OpenGL.h"
 
 // This module
 #include "Object.h"
@@ -82,7 +73,7 @@ void Cube::SetupLightsConst()
 
     // Top Light
     // lumière 3 au dessus de l'ensemble
-    float position[] = { 0.f, 50.f, 0.f, 1.f };
+    float position[] = { -dim, dim, dim, 1.f };
     float direction[] = { 0.f, -1.f, 0.f };
     float intensiteDiffuse[] = { .7f, .7f, .7f, 0.f };
     float intensiteSpeculaire[] = { .5f, .5f, .5f, 0.f };
@@ -94,8 +85,8 @@ void Cube::SetupLightsConst()
     glLightf(GL_LIGHT3, GL_SPOT_CUTOFF, 180.f); // angle d'ouverture de la source
     glLightf(GL_LIGHT3, GL_SPOT_EXPONENT, 40.f); // atténuation angulaire
     // coefs d'atténuation
-    glLightf(GL_LIGHT3, GL_CONSTANT_ATTENUATION, 1.f);
-    glLightf(GL_LIGHT3, GL_LINEAR_ATTENUATION, .01f);
+    glLightf(GL_LIGHT3, GL_CONSTANT_ATTENUATION, .1f);
+    glLightf(GL_LIGHT3, GL_LINEAR_ATTENUATION, .001f);
     glLightf(GL_LIGHT3, GL_QUADRATIC_ATTENUATION, 0.f);
     // on active la lumière
     glEnable(GL_LIGHT3);
@@ -120,7 +111,7 @@ void Cube::DisplayConst()
     glDisable(GL_LIGHTING);
     glEnable(GL_TEXTURE_2D);
     glPolygonMode(GL_FRONT, GL_FILL);
-    glColor3f(0.f, 1.f, 0.f);
+    glColor3f(0.f, 0.f, 0.f);
 
     textures[FRONT]->Select();
     glBegin(GL_QUADS);

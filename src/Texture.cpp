@@ -36,8 +36,6 @@
 
 // Windows
 #ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
 # define DIRSEP "\\"
 # ifdef _MSC_VER
 #  pragma warning(disable: 4702)
@@ -55,17 +53,15 @@
 #include <list>
 
 // OpenGL
-#ifdef __APPLE__
-# include <OpenGL/gl.h>
-# include <OpenGL/glu.h>
-#else // !__APPLE__
-# include <GL/gl.h>
-# include <GL/glu.h>
-#endif // !__APPLE__
+#define PODZ_USE_GL
+#define PODZ_USE_GLEXT
+#define PODZ_USE_GLU
+#include "OpenGL.h"
 
 // This module
 #include "Texture.h"
 
+/*
 // Define this constant if not handled by <GL/gl.h>
 #ifndef GL_CLAMP_TO_EDGE
 # ifdef GL_CLAMP_TO_EDGE_EXT
@@ -74,6 +70,7 @@
 #  define GL_CLAMP_TO_EDGE 0x812F
 # endif // !GL_CLAMP_TO_EDGE_EXT
 #endif // !GL_CLAMP_TO_EDGE
+*/
 
 
 namespace Podz {
@@ -128,7 +125,6 @@ bool Texture::Select() const
 {
     // Switch to this texture
     if (texturing) {
-	glDisable(GL_TEXTURE_2D);
 	glBindTexture(GL_TEXTURE_2D, id);
 	glEnable(GL_TEXTURE_2D);
 	glColor3f(1.f, 1.f, 1.f);
@@ -185,6 +181,10 @@ bool Texture::Load(const char *const filename)
     glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
 
+    // Build texture
+    gluBuild2DMipmaps(GL_TEXTURE_2D, bpp / 8, width, height,
+		      bpp == 24 ? GL_RGB : GL_RGBA, GL_UNSIGNED_BYTE, data);
+
     // Set texture parameters
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -193,10 +193,6 @@ bool Texture::Load(const char *const filename)
     glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
 		    GL_LINEAR_MIPMAP_LINEAR);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-
-    // Build texture
-    gluBuild2DMipmaps(GL_TEXTURE_2D, bpp / 8, width, height,
-		      bpp == 24 ? GL_RGB : GL_RGBA, GL_UNSIGNED_BYTE, data);
 
     // Free memory and return
     delete[] data;

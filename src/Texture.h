@@ -38,15 +38,9 @@
 #include <list>
 
 // OpenGL
-#if defined(_WIN32) && !defined(APIENTRY)
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-#endif // _WIN32 && !APIENTRY
-#ifdef __APPLE__
-# include <OpenGL/gl.h>
-#else
-# include <GL/gl.h>
-#endif
+#define PODZ_USE_GL
+#include "OpenGL.h"
+
 
 namespace Podz {
 
@@ -65,6 +59,7 @@ public:
     static bool IsTexturingEnabled() { return texturing; }
     static void EnableTexturing(bool enable = true) { texturing = enable; }
     static void DisableTexturing() { EnableTexturing(false); }
+    static void ToogleTexturing() { texturing = !texturing; }
 
 private:
     const char *filename;

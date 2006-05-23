@@ -95,7 +95,7 @@ public:
     // Miscellaneous operators
     Vector operator -() const { return Vector(*this).Reverse(); }
     Vector &operator %=(const float n) { return Normalize(n); }
-    Vector operator %(const float n) { return Vector(*this) %= n; }
+    Vector operator %(const float n) const { return Vector(*this) %= n; }
 
     // Incrementation and decrementation
     Vector &operator +=(const float t) { return (*this) += (*this) % t; }

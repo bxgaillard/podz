@@ -34,32 +34,23 @@
 # include <config.h>
 #endif // HAVE_CONFIG_H
 
-// Windows
-#ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-# include <cstdlib>
-# ifdef _MSC_VER
-#  pragma warning(disable: 4505 4702)
-# endif // _MSC_VER
-#endif // _WIN32
+// Microsoft Visual C++
+#ifdef _MSC_VER
+# pragma warning(disable: 4702)
+#endif // _MSC_VER
 
 // STL
 #include <list>
 
 // OpenGL
-#ifdef __APPLE__
-# include <OpenGL/gl.h>
-# include <OpenGL/glu.h>
-# include <GLUT/glut.h>
-#else // !__APPLE__
-# include <GL/gl.h>
-# include <GL/glu.h>
-# include <GL/glut.h>
-#endif // !__APPLE__
+#define PODZ_USE_GL
+#define PODZ_USE_GLU
+#define PODZ_USE_GLUT
+#include "OpenGL.h"
 
 // This module
 #include "Object.h"
+#include "PostProcess.h"
 #include "Texture.h"
 #include "Display.h"
 
@@ -71,11 +62,10 @@
 namespace Podz {
 
 Display *Display::instance = 0;
-bool Display::lighting = true;
 
 
 Display::Display(const int wwidth, const int wheight)
-    : width(wwidth), height(wheight)
+    : width(wwidth), height(wheight), lighting(true)
 {
     instance = this;
 
@@ -88,6 +78,10 @@ Display::~Display()
 	 current != objects.end();
 	 ++current)
 	delete (*current);
+    for (std::list<PostProcess *>::iterator current = postprocs.begin();
+	 current != postprocs.end();
+	 ++current)
+	delete (*current);
     glutDestroyWindow(window);
 }
 
@@ -97,12 +91,22 @@ void Display::AddObject(Object *object)
     object->BuildLists();
 }
 
+void Display::AddPostProcess(PostProcess *postproc)
+{
+    postprocs.push_back(postproc);
+    postproc->Init();
+}
+
 void Display::SetFullScreen(const bool fullScreen, const bool first)
 {
     this->fullScreen = fullScreen;
 
     if (!first)
 	Texture::FreeAll();
+    for (std::list<PostProcess *>::iterator current = postprocs.begin();
+	 current != postprocs.end();
+	 ++current)
+	(*current)->Free();
 
     // Initialize the GLUT window
     if (fullScreen) {
@@ -115,13 +119,17 @@ void Display::SetFullScreen(const bool fullScreen, const bool first)
 	if (!first)
 	    glutLeaveGameMode();
 
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_ALPHA);
 	glutInitWindowSize(width, height);
 	window = glutCreateWindow(PACKAGE_NAME);
     }
 
     if (!first)
 	Texture::LoadAll();
+    for (std::list<PostProcess *>::iterator current = postprocs.begin();
+	 current != postprocs.end();
+	 ++current)
+	(*current)->Init();
 
     // No cursor
     glutSetCursor(GLUT_CURSOR_NONE);
@@ -140,8 +148,8 @@ void Display::SetFullScreen(const bool fullScreen, const bool first)
 
 void Display::RebuildLists()
 {
-    for (std::list<Object *>::iterator object = instance->objects.begin();
-	 object != instance->objects.end();
+    for (std::list<Object *>::iterator object = objects.begin();
+	 object != objects.end();
 	 ++object)
 	(*object)->BuildLists();
 }
@@ -157,6 +165,7 @@ void Display::DisplayText(const char *const text, const float x,
     glTranslatef(x, y, -1.f);
     glScalef(scale, scale, scale);
     glColor3f(0.f, 1.f, 0.f);
+    glLineWidth(scale * 3000.f);
 
     for (int i = 0; text[i] != '\0'; ++i)
 	glutStrokeCharacter(GLUT_STROKE_ROMAN, text[i]);
@@ -172,6 +181,11 @@ void Display::OnDisplay()
 
     std::list<Object *>::iterator current;
 
+    if (IsLightingEnabled())
+	glEnable(GL_LIGHTING);
+    else
+	glDisable(GL_LIGHTING);
+
     for (current = objects.begin(); current != objects.end(); ++current)
 	(*current)->SetupModelview();
 
@@ -179,14 +193,21 @@ void Display::OnDisplay()
 	(*current)->SetupLights();
 
     for (current = objects.begin(); current != objects.end(); ++current) {
-	if (IsLightingEnabled())
+	if (lighting)
 	    glEnable(GL_LIGHTING);
 	else
 	    glDisable(GL_LIGHTING);
-	glDisable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D, 0);
 	(*current)->Display();
     }
+
+    for (std::list<PostProcess *>::iterator pproc = postprocs.begin();
+	 pproc != postprocs.end();
+	 ++pproc)
+	if ((*pproc)->IsEnabled())
+	    (*pproc)->Apply();
+
+    for (current = objects.begin(); current != objects.end(); ++current)
+	(*current)->DisplayOSD();
 
     glutSwapBuffers();
 }
@@ -195,14 +216,14 @@ void Display::OnReshape(const int width, const int height)
 {
     if (!fullScreen)
 	this->width = width, this->height = height;
-
-    const float ratio =
-	static_cast<float>(width) / static_cast<float>(height);
+    this->realWidth = width, this->realHeight = height;
 
     glViewport(0, 0, width, height);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(VIEW_ANGLE, ratio, VIEW_NEAR, VIEW_FAR);
+    gluPerspective(VIEW_ANGLE, static_cast<float>(realWidth) /
+			       static_cast<float>(realHeight),
+		   VIEW_NEAR, VIEW_FAR);
     glMatrixMode(GL_MODELVIEW);
 
     glutPostRedisplay();

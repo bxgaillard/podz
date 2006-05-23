@@ -34,12 +34,6 @@
 # include <config.h>
 #endif // HAVE_CONFIG_H
 
-// Windows
-#ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-#endif // _WIN32
-
 // STL
 #include <vector>
 #include <fstream>
@@ -48,11 +42,8 @@
 #include <cmath>
 
 // OpenGL
-#ifdef __APPLE__
-# include <OpenGL/gl.h>
-#else // !__APPLE__
-# include <GL/gl.h>
-#endif // !__APPLE__
+#define PODZ_USE_GL
+#include "OpenGL.h"
 
 // This module
 #include "Object.h"
@@ -228,6 +219,11 @@ float Circuit::GetWidth(float position) const
 	   segments[cursor + 1].width * position;
 }
 
+float Circuit::GetBorderSlope()
+{
+    return BORDER_WIDTH / BORDER_HEIGHT;
+}
+
 void Circuit::AddSegment(const Point &start, const Point &end,
 			 std::vector<Segment> &segs)
 {
@@ -253,7 +249,7 @@ void Circuit::AddSegment(const Point &start, const Point &end,
 
 	Segment newseg = {
 	    { pt1, pt2, pt3, pt4 }, len, CIRC_WIDTH,
-	    Basis(start.point, diff * start.normal, start.normal, -diff)
+	    Basis(start.point, diff, start.normal)
 	};
 	segs.push_back(newseg);
 	totalLength += len;

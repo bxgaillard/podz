@@ -6,8 +6,8 @@
  *
  * ---------------------------------------------------------------------------
  *
- *        File: src/Keyboard.h
- * Description: Keyboard Handling Functions (Header)
+ *        File: src/PostProcess.h
+ * Description: Post-Processing Effets Base Class (Header)
  *
  * ---------------------------------------------------------------------------
  *
@@ -29,52 +29,40 @@
  */
 
 
-#ifndef PODZ_KEYBOARD_H
-#define PODZ_KEYBOARD_H
+#ifndef PODZ_POSTPROCESS_H
+#define PODZ_POSTPROCESS_H
 
-namespace Podz
-{
+namespace Podz {
 
-class Display;
-class Vehicle;
-class Timer;
+#define DECL_GL_FUNC(type, name) static type name
+#define IMPL_GL_FUNC(type, name, class) type class::name
+#define INIT_GL_FUNC(type, name) (name = (type) glutGetProcAddress(#name))
 
-class Keyboard
+
+class PostProcess
 {
 public:
-    Keyboard(Display &disp, Vehicle &vehi);
+    virtual ~PostProcess() = 0;
 
-    static void RegisterCallbacks();
-    void CheckKeys() const;
-    void SetTimer(Timer *const tmr) { timer = tmr; }
+    virtual void Init();
+    virtual void Free();
+    virtual void Apply();
+
+    void Enable(bool enable = true) { enabled = enable; }
+    void Disable() { Enable(false); }
+    bool IsEnabled() const { return enabled; }
+
+protected:
+    explicit PostProcess(bool enable = true) : enabled(enable) {}
+
+    static bool IsExtensionSupported(const char *extension);
 
 private:
-    enum { KEY_UP = 0, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_NUM };
-
-    Display &display;
-    Vehicle &vehicle;
-    Timer *timer;
-
-    bool pressed[KEY_NUM];
-
-    void UpdateKey(int key, bool state);
-
-    void KeyPressed(unsigned char key, int x, int y);
-    void SpecialKeyPressed(int key, int x, int y);
-    void SpecialKeyReleased(int key, int x, int y);
-
-    // GLUT callbacks
-    static Keyboard *instance;
-    static void KeyboardFunc(unsigned char key, int x, int y);
-    static void SpecialFunc(int key, int x, int y);
-    static void SpecialUpFunc(int key, int x, int y);
-
-    // No assignment
-    void operator =(const Keyboard &) const;
+    bool enabled;
 };
 
 } // namespace Podz
 
-#endif // !PODZ_KEYBOARD_H
+#endif // !PODZ_POSTPROCESS_H
 
 // End of File

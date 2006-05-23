@@ -36,12 +36,9 @@
 
 // Windows
 #ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
+# define WIN32_LEAN_AND_MEAN 1
 # include <windows.h>
 # define chdir !SetCurrentDirectoryA
-# ifdef _MSC_VER
-#  pragma warning(disable: 4505)
-# endif // _MSC_VER
 # define DIRSEP "\\"
 #else // !_WIN32
 # define DIRSEP "/"
@@ -57,11 +54,8 @@
 #endif // DATA_DIR
 
 // OpenGL
-#ifdef __APPLE__
-# include <GLUT/glut.h>
-#else // !__APPLE__
-# include <GL/glut.h>
-#endif // !__APPLE__
+#define PODZ_USE_GLUT
+#include "OpenGL.h"
 
 // This module
 #include "Display.h"
@@ -70,6 +64,7 @@
 #include "Cube.h"
 #include "Circuit.h"
 #include "Vehicle.h"
+#include "DepthOfField.h"
 #include "Application.h"
 
 #ifndef PACKAGE_TARNAME
@@ -104,7 +99,7 @@ Application::Application()
     Vehicle *const vehicle = new Vehicle(*circuit);
     Cube *const cube = new Cube(1000.f);
 
-    keyboard = new Keyboard(*vehicle);
+    keyboard = new Keyboard(*display, *vehicle);
     timer = new Timer(10, *keyboard);
     keyboard->SetTimer(timer);
     vehicle->SetTimer(timer);
@@ -113,6 +108,8 @@ Application::Application()
     display->AddObject(circuit);
     display->AddObject(vehicle);
     display->AddObject(timer);
+
+    display->AddPostProcess(new DepthOfField(*display, -2.f, 2.f, 5.f, 30.f));
 
     // Ensure resources get freed
     instance = this;

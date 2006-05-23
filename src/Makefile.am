@@ -43,12 +43,18 @@ podz_SOURCES = \
     Circuit.h \
     Cube.cpp \
     Cube.h \
+    DepthOfField.cpp \
+    DepthOfField.h \
     Display.cpp \
     Display.h \
     Keyboard.cpp \
     Keyboard.h \
     Object.cpp \
     Object.h \
+    OpenGL.h \
+    OpenGLExt.h \
+    PostProcess.cpp \
+    PostProcess.h \
     Texture.cpp \
     Texture.h \
     Timer.cpp \

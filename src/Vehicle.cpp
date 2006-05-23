@@ -7,7 +7,7 @@
  * ---------------------------------------------------------------------------
  *
  *        File: src/Vehicle.cpp
- * Description: Vahicle Handling Functions
+ * Description: Vehicle Handling Functions
  *
  * ---------------------------------------------------------------------------
  *
@@ -36,8 +36,6 @@
 
 // Windows
 #ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
 # define _USE_MATH_DEFINES
 # define snprintf _snprintf
 #endif // _WIN32
@@ -47,13 +45,9 @@
 #include <cmath>
 
 // OpenGL
-#ifdef __APPLE__
-# include <OpenGL/gl.h>
-# include <OpenGL/glu.h>
-#else // !__APPLE__
-# include <GL/gl.h>
-# include <GL/glu.h>
-#endif // !__APPLE__
+#define PODZ_USE_GL
+#define PODZ_USE_GLU
+#include "OpenGL.h"
 
 // This module
 #include "Object.h"
@@ -68,17 +62,25 @@
 
 namespace Podz {
 
-static const float LEVIT_HEIGHT = 1.f;
-static const float WEIGHT = 1.f;
-static const float FRICTION = .01f;
-static const float ACCEL = .00005f;
-static const float ROT_ANGLE = .03f;
-static const float MAX_ACCEL = .003f;
-static const float GRAVITY = .002f;
-static const float BORDER = .2f;
-static const float GROUND_REAC_COEF = .05f;
-static const float REACTION_COEF = .015f;
-static const float REACTION_SPEED_COEF = .8f;
+static const float LEVIT_HEIGHT = .3f;
+static const float INERTY = .995f;
+static const float ACCEL = .000005f;
+static const float ROT_ANGLE = .025f;
+static const float MAX_ACCEL = .0015f;
+static const float GRAVITY = .001f;
+static const float BORDER = .1f;
+static const float GROUND_REACTION_TOUCH_FACTOR = 1.5f;
+static const float GROUND_REACTION_FACTOR = 1.f;
+static const float GROUND_REACTION_MAX = 4.f * GRAVITY;
+static const float GROUND_REACTION_HEIGHT_MAX = LEVIT_HEIGHT * 3.f;
+static const float REACTION_FACTOR = .5f;
+static const float REACTION_SPEED_FACTOR = 4.f;
+static const float REACTION_MIN = 1.f;
+
+static const float SLOPE_INCREASE = .02f;
+static const float SLOPE_DECREASE_FACTOR = .97f;
+static const float SLOPE_MAX = static_cast<float>(M_PI) / 3.f;
+static const float SLOPE_OFFSET_FACTOR = .5f;
 
 static const int LAP_NUM = 3;
 
@@ -99,9 +101,12 @@ void Vehicle::SetupModelview()
 {
     glLoadIdentity();
     const Vector eye = position - (direction * 1.5f);
+    const Vector up = basis.backward
+		    * Vector(basis.right.x, 0.f, basis.right.z);
+    glTranslatef(slope * SLOPE_OFFSET_FACTOR, -.6f, 0.f);
     gluLookAt(eye.x, eye.y, eye.z,
 	      position.x, position.y, position.z,
-	      basis.up.x, basis.up.y, basis.up.z);
+	      up.x, up.y, up.z);
 }
 
 void Vehicle::SetupLightsConst()
@@ -154,16 +159,17 @@ void Vehicle::SetupLightsConst()
     glPopMatrix();
 }
 
-void Vehicle::DisplayConst()
+void Vehicle::DisplayVar()
 {
     // on sauvegarde la matrice
     glPushMatrix();
 
-    glLoadIdentity();
-    glTranslatef(0.f, -.5f, -1.8f);
+    Basis(position, direction, basis.up).Move();
+    glTranslatef(0.f, .075f, -.55f);
+    glRotatef(slope * (180.f / static_cast<float>(M_PI)), 0.f, 0.f, 1.f);
 
     // type d'affichage
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glPolygonMode(GL_FRONT, GL_FILL);
 
     // couleur
     glColor3f(.5f, .5f, .5f);
@@ -373,14 +379,14 @@ void Vehicle::DisplayConst()
     glPopMatrix();
 }
 
-void Vehicle::DisplayVar()
+void Vehicle::DisplayOSD()
 {
     char buffer[32];
 
     if (lap <= LAP_NUM) {
 	// Fake speed value ;)
 	snprintf(buffer, sizeof(buffer), "Speed: %d km/h",
-		 static_cast<int>(speed.Length() * 666.f + .5f));
+		 static_cast<int>(speed.Length() * 666.f));
 	Display::DisplayText(buffer, .1f, .5f);
 
 	snprintf(buffer, sizeof(buffer), "Lap %d/%d", lap, LAP_NUM);
@@ -399,7 +405,7 @@ void Vehicle::DisplayVar()
 void Vehicle::Init()
 {
     basis = circuit.GetBasis(0.f);
-    position = basis.origin + basis.up * LEVIT_HEIGHT;
+    position = basis.origin + basis.up * LEVIT_HEIGHT / 2.f;
     direction = -basis.backward;
     speed.Set(0.f, 0.f, 0.f);
     circPosition = 0.f;
@@ -407,7 +413,9 @@ void Vehicle::Init()
     circOffset = 0.f;
     acceleration = 0.f;
     angle = 0.f;
+    slope = 0.f;
 
+    accelerated = false;
     wrongWay = false;
     lap = 1;
 }
@@ -415,32 +423,56 @@ void Vehicle::Init()
 void Vehicle::Move()
 {
     const Vector localpos = basis.RevertPoint(position);
+    const Vector localspeed = basis.RevertVector(speed);
 
     direction = basis.TransformVector(Vector(0.f, 0.f, -1.f)
-	    .Rotate(0.f, angle, 0.f));
+		.Rotate(0.f, angle, 0.f));
 
-    speed = speed * (WEIGHT - FRICTION) + direction * acceleration
-	    + Vector(0.f, -1.f, 0.f) * GRAVITY;
+    speed = speed * (INERTY) + direction * acceleration
+	    + Vector(0.f, -GRAVITY, 0.f);
 
-    if (localpos.y < LEVIT_HEIGHT)
-	speed += basis.up * (LEVIT_HEIGHT - localpos.y) * GROUND_REAC_COEF;
+    float ground = 0.f;
+    if (localpos.y < 0) {
+	position += basis.up * -localpos.y;
+	ground = localspeed.y * -GROUND_REACTION_TOUCH_FACTOR;
+    } else if (localpos.y < GROUND_REACTION_HEIGHT_MAX) {
+	const float height = LEVIT_HEIGHT / GROUND_REACTION_FACTOR;
+	if (localpos.y <= height)
+	    ground = GROUND_REACTION_MAX - localpos.y * ((GROUND_REACTION_MAX
+		    - GRAVITY) / height);
+	else
+	    ground = GRAVITY - (localpos.y - height) * (GRAVITY /
+		    (GROUND_REACTION_HEIGHT_MAX - height));
+	ground *= GROUND_REACTION_FACTOR;
+    }
+    speed += basis.up * ground;
 
-    const float diff = fabsf(localpos.x) -
-		       (circuit.GetWidth(circPosition) * .5f - BORDER);
+    const float diff = fabsf(localpos.x)
+		     - (circuit.GetWidth(circPosition) * .5f
+			+ circuit.GetBorderSlope() * localpos.y - BORDER);
     if (diff > 0) {
-	float reaction = (localpos.x < 0.f ? REACTION_COEF : -REACTION_COEF);
-	speed = speed * REACTION_SPEED_COEF + basis.right * reaction;
-	acceleration = 0.f;
+	position += basis.right * (2.f * (localpos.x < 0 ? diff : -diff));
+	const float min = REACTION_MIN * speed.Length();
+	float reaction = localspeed.x * -REACTION_FACTOR;
+	if (fabsf(reaction) < min)
+	    reaction = localspeed.x < 0 ? min : -min;
+	speed *= REACTION_SPEED_FACTOR * fabsf(localspeed.x);
+	speed += basis.right * reaction * REACTION_FACTOR;
+	acceleration *= .5f;
     }
 
     position += speed;
-    Decelerate(ACCEL / 2.f);
+    if (accelerated)
+	accelerated = false;
+    else
+	Decelerate(ACCEL / 2.f);
+    slope *= SLOPE_DECREASE_FACTOR;
 
     const Vector newpos = basis.RevertPoint(position);
     circOffset += newpos.x;
     if (newpos.z != 0.f) {
 	const float circAdd = -basis.RevertPoint(position).z;
-	wrongWay = circAdd < 0.f;
+	wrongWay = circAdd < -.001f;
 	circPosition += circAdd;
 	lapPosition += circAdd;
 
@@ -466,8 +498,10 @@ void Vehicle::Move()
 
 void Vehicle::Accelerate()
 {
-    if (acceleration < MAX_ACCEL)
-	acceleration += ACCEL;
+    accelerated = true;
+    acceleration += ACCEL;
+    if (acceleration > MAX_ACCEL)
+	acceleration = MAX_ACCEL;
 }
 
 void Vehicle::Brake()
@@ -478,11 +512,15 @@ void Vehicle::Brake()
 void Vehicle::TurnLeft()
 {
     angle -= ROT_ANGLE;
+    if ((slope += SLOPE_INCREASE) > SLOPE_MAX)
+	slope = SLOPE_MAX;
 }
 
 void Vehicle::TurnRight()
 {
     angle += ROT_ANGLE;
+    if ((slope -= SLOPE_INCREASE) < -SLOPE_MAX)
+	slope = -SLOPE_MAX;
 }
 
 void Vehicle::Decelerate(const float amount)
