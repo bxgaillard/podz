@@ -36,7 +36,9 @@ namespace Podz {
 
 #define DECL_GL_FUNC(type, name) static type name
 #define IMPL_GL_FUNC(type, name, class) type class::name
-#define INIT_GL_FUNC(type, name) (name = (type) glutGetProcAddress(#name))
+#define INIT_GL_FUNC(type, name) \
+        (name = reinterpret_cast<type>(glutGetProcAddress( \
+            reinterpret_cast<const GLubyte *>(#name))))
 
 
 class PostProcess

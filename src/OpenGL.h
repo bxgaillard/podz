@@ -79,7 +79,10 @@
 #   ifdef _MSC_VER
 #    pragma warning(disable: 4505)
 #   endif // _MSC_VER
-#  endif // _WIN32
+#  else
+#    include <GL/glx.h>
+#    define glutGetProcAddress glXGetProcAddress
+#  endif
 #  include <GL/glut.h>
 # endif // !__APPLE__
 #endif // PODZ_USE_GLUT

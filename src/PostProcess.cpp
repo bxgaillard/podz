@@ -57,22 +57,22 @@ void PostProcess::Apply() {}
 
 bool PostProcess::IsExtensionSupported(const char *extension)
 {
-    const GLubyte *extensions = NULL;
-    const GLubyte *start;
-    GLubyte *where, *terminator;
+    const char *extensions = 0;
+    const char *start;
+    const char *where, *terminator;
 
     // Extension names should not have spaces
-    where = reinterpret_cast<GLubyte *>(std::strchr(extension, ' '));
+    where = std::strchr(extension, ' ');
     if (where != 0 || *extension == '\0')
 	return false;
 
-    extensions = glGetString(GL_EXTENSIONS);
+    extensions = reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS));
 
     // It takes a bit of care to be fool-proof about parsing the OpenGL
     // extensions string. Don't be fooled by sub-strings, etc.
     start = extensions;
     for (;;) {
-	where = reinterpret_cast<GLubyte *>(std::strstr(reinterpret_cast<const char *>(start), extension));
+	where = std::strstr(start, extension);
 	if (where == 0)
 	    break;
 	terminator = where + std::strlen(extension);
