@@ -2,7 +2,7 @@
  * ---------------------------------------------------------------------------
  *
  * Podz: A Pod Racing Game
- * Copyright (C) 2006 Benjamin Gaillard & Nicolas Riegel
+ * Copyright (C) 2006-2018 Benjamin Gaillard & Nicolas Riegel
  *
  * ---------------------------------------------------------------------------
  *
