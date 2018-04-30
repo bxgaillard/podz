@@ -62,7 +62,7 @@ private:
     float blurNear, focalNear, focalFar, blurFar;
     GLuint program, copyProgram, blurProgram, dofProgram;
     GLuint textures[2];
-    static const char *fragmentShaderSource;
+    static const char *vertexShaderSource, *fragmentShaderSource;
     static const char *blurVertexShaderSource, *blurFragmentShaderSource;
     static const char *dofVertexShaderSource, *dofFragmentShaderSource;
 

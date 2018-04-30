@@ -79,6 +79,14 @@ IMPL_GL_FUNC(PFNGLUNIFORM2FARBPROC,           glUniform2fARB,
 	     DepthOfField);
 
 
+const char *DepthOfField::vertexShaderSource =
+    "void main()\n"
+    "{\n"
+    "    gl_Position = ftransform();\n"
+    "    vec4 eyeCoordPos = gl_ModelViewMatrix * gl_Vertex;\n"
+    "    gl_FogFragCoord = abs(eyeCoordPos.z / eyeCoordPos.w);\n"
+    "}\n";
+
 const char *DepthOfField::fragmentShaderSource =
     "uniform float blurNear, focalNear, focalFar, blurFar;\n"
     "\n"
@@ -96,9 +104,9 @@ const char *DepthOfField::fragmentShaderSource =
     "\n"
     "void main()\n"
     "{\n"
-    "    const vec4 tex = texture2D(texture, gl_TexCoord[0].st) * gl_Color;\n"
-    "    const vec4 mixed = mix(tex, gl_Color, 1.0 - tex.a);"
-    "    gl_FragColor = vec4(mixed.rgb, DepthBlur(-gl_FogFragCoord));\n"
+    "    vec4 tex = texture2D(texture, gl_TexCoord[0].st) * gl_Color;\n"
+    "    vec4 mixed = mix(tex, gl_Color, 1.0 - tex.a);\n"
+    "    gl_FragColor = vec4(mixed.rgb, DepthBlur(gl_FogFragCoord));\n"
     "}\n";
 
 const char *DepthOfField::blurVertexShaderSource =
@@ -151,8 +159,8 @@ const char *DepthOfField::dofFragmentShaderSource =
     "\n"
     "void main()\n"
     "{\n"
-    "    const vec4 pixel = texture2D(frame, gl_TexCoord[0].st);\n"
-    "    const vec4 blurred = texture2D(blur, gl_TexCoord[1].st);\n"
+    "    vec4 pixel = texture2D(frame, gl_TexCoord[0].st);\n"
+    "    vec4 blurred = texture2D(blur, gl_TexCoord[1].st);\n"
     "    gl_FragColor = vec4(mix(pixel.rgb, blurred.rgb, pixel.a), 0.0);\n"
     "}\n";
 
@@ -378,6 +386,7 @@ void DepthOfField::Apply()
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
+    glUseProgramObjectARB(0);
     glUseProgramObjectARB(program);
 
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
